@@ -77,7 +77,6 @@ class DeepZoomProcessorView(object):
 			fd.close()
 			
 			try:
-				pudb.set_trace()
 				cachedimage = CachedImage(imageurl)
 				tempfilepath = cachedimage.createTempFile()
 				
