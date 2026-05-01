@@ -7,8 +7,11 @@ from configparser import ConfigParser
 config = ConfigParser()
 config.read('./pydeepzoom/config.ini')
 
-import logging
+import logging.config
+logging.config.fileConfig('pydeepzoom/logging.conf')
 log = logging.getLogger('pydeepzoom')
+errorlog = logging.getLogger('error')
+
 
 class DomainCheck():
 	def __init__(self, url):

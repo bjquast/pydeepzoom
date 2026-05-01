@@ -1,5 +1,7 @@
-import logging
-log = logging.getLogger(__name__)
+import logging.config
+logging.config.fileConfig('pydeepzoom/logging.conf')
+log = logging.getLogger('pydeepzoom')
+errorlog = logging.getLogger('error')
 
 from pyramid.response import Response
 from pyramid.renderers import render_to_response
@@ -8,8 +10,6 @@ from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPSeeOther
 
 import pudb
 import json
-
-
 
 class helpView():
 	def __init__(self, request):

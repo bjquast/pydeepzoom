@@ -23,6 +23,7 @@ setup(name='pydeepzoom',
 	author='Börn Quast',
 	author_email='b.quast@leibniz-lib.de',
 	license='CCBy 4.0',
+	packages=['pydeepzoom'],
 	install_requires=requires,
 	entry_points="""\
 	[paste.app_factory]

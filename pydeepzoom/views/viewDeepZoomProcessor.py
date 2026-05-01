@@ -1,5 +1,7 @@
-import logging
-log = logging.getLogger(__name__)
+import logging.config
+logging.config.fileConfig('pydeepzoom/logging.conf')
+log = logging.getLogger('pydeepzoom')
+errorlog = logging.getLogger('error')
 
 from pyramid.response import Response, FileResponse
 from pyramid.view import (view_config, view_defaults)
@@ -31,7 +33,7 @@ class DeepZoomProcessorView(object):
 		
 		self.tilesdir = config.get('tiles_cache', 'dir', fallback = './tilescache')
 		
-		self.max_sleep_time = 10
+		self.max_sleep_time = 5
 		
 		
 	
@@ -63,11 +65,11 @@ class DeepZoomProcessorView(object):
 				if os.path.isfile(dzifile):
 					jsondict = dzi2json(dzifile)
 					if 'Format' in jsondict:
-						break
+						return jsondict
 				time.sleep(1)
 				count += 1
 		
-		elif os.path.isfile(dzifile):
+		if os.path.isfile(dzifile):
 			jsondict = dzi2json(dzifile)
 		
 		else:
@@ -82,8 +84,11 @@ class DeepZoomProcessorView(object):
 				os.remove(dzimarker)
 				raise exception_response(400, detail='image url does not provide a valid image')
 			
-			tilesgenerator = TilesGenerator(cachedimage, dzipath)
-			jsondict = dzi2json(os.getcwd() + '/' + dzifile)
+			try:
+				tilesgenerator = TilesGenerator(cachedimage, dzipath)
+				jsondict = dzi2json(os.getcwd() + '/' + dzifile)
+			except:
+				raise exception_response(400, detail='libvips deepzoom tiles generation failed')
 			
 			cachedimage.closeTempFile()
 		
