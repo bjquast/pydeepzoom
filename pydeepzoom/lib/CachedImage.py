@@ -1,5 +1,6 @@
 import pudb
 import requests
+from pyramid.httpexceptions import exception_response
 import os
 import time
 from PIL import Image
@@ -23,17 +24,13 @@ class CachedImage():
 		self.sslverify = config.getboolean('ssl_requests', 'sslverify')
 		self.user_agent = config.get('request_headers', 'user-agent')
 		self.request_headers = {'User-Agent': self.user_agent}
-		
-		self.fileformat = self.readFileFormat()
-		if self.fileformat is None:
-			raise ValueError('class ImageCache: image url does not reference an image')
 
 
 	def createTempFile(self):
 		
 		self.cachedfile = NamedTemporaryFile(dir=self.tempdir, delete=True)
 		self.filepath = self.cachedfile.name
-		
+		self.readFileFormat()
 		self.fetchImageFromURL()
 		self.readImage()
 		self.setImageInfo()
@@ -42,27 +39,26 @@ class CachedImage():
 
 	
 	def fetchImageFromURL(self):
-		r = requests.get(self.imageurl, allow_redirects=True, verify=self.sslverify, headers=self.request_headers)
-		self.cachedfile.write(r.content)
+		r = requests.get(self.imageurl, allow_redirects=True, verify=self.sslverify, headers=self.request_headers, timeout = 60)
+		if r.status_code == 200:
+			self.cachedfile.write(r.content)
+			return
+		raise exception_response(r.status_code, detail=r.reason)
 	
 	def readFileFormat(self):
-		h = requests.head(self.imageurl, allow_redirects=True, verify=self.sslverify, headers=self.request_headers)
+		h = requests.head(self.imageurl, allow_redirects=True, verify=self.sslverify, headers=self.request_headers, timeout = 10)
 		header = h.headers
 		contenttype = header.get('content-type')
-		
-		for fileformat in self.known_formats:
-			if fileformat in contenttype.lower():
-				self.extension = fileformat
-				return fileformat
-		
-		return None
+		if h.status_code == 200:
+			for fileformat in self.known_formats:
+				if fileformat in contenttype.lower():
+					self.fileformat = fileformat
+					return
+			raise exception_response(400, detail='file format {0} not supported'.format(contenttype))
+		raise exception_response(h.status_code, detail=h.reason)
 	
 	def readImage(self):
 		self.image = Image.open(self.cachedfile.name)
-		'''
-		if self.image.format.lower() not in self.known_formats:
-			raise ValueError('class ImageCache: image url does not reference an accepted image format')
-		'''
 	
 	def setImageInfo(self):
 		self.height = self.image.height

@@ -3,6 +3,8 @@ logging.config.fileConfig('pydeepzoom/logging.conf')
 log = logging.getLogger('pydeepzoom')
 errorlog = logging.getLogger('error')
 
+from requests import ReadTimeout
+
 from pyramid.response import Response, FileResponse
 from pyramid.view import (view_config, view_defaults)
 from pyramid.httpexceptions import HTTPFound, HTTPNotFound, HTTPSeeOther, exception_response
@@ -79,16 +81,29 @@ class DeepZoomProcessorView(object):
 			try:
 				cachedimage = CachedImage(imageurl)
 				tempfilepath = cachedimage.createTempFile()
-				
+			except ReadTimeout:
+				os.remove(dzimarker)
+				raise exception_response(400, detail='request timed out for image url={0}'.format(imageurl))
 			except:
 				os.remove(dzimarker)
+				raise
+			'''
+			try:
+				cachedimage = CachedImage(imageurl)
+				tempfilepath = cachedimage.createTempFile()
+				
+			except Exception as e:
+				os.remove(dzimarker)
+				if isinstance(e, ReadTimeout):
+					raise exception_response(400, detail='image request timed out')
+				
 				raise exception_response(400, detail='image url does not provide a valid image')
-			
+			'''
 			try:
 				tilesgenerator = TilesGenerator(cachedimage, dzipath)
 				jsondict = dzi2json(os.getcwd() + '/' + dzifile)
 			except:
-				raise exception_response(400, detail='libvips deepzoom tiles generation failed')
+				raise exception_response(500, detail='libvips deepzoom tiles generation failed')
 			
 			cachedimage.closeTempFile()
 		
